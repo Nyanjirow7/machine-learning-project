@@ -60,8 +60,9 @@ def softmax_loop(z: list) -> list:
         `softmax_loop([1000.0, 1001.0])` must not raise `OverflowError`.
     """
     len_z = len(z)
+    max_z = max(z)
     for i in range(len_z):
-        z[i] -= max(z)
+        z[i] -= max_z
     sum_exp_z = sum(math.exp(z[j]) for j in range(len_z))
     result = []
     for i in range(len(z)):
@@ -87,8 +88,9 @@ def softmax_np(z: np.ndarray) -> np.ndarray:
         `softmax_np(np.array([1000.0, 1001.0]))` must not contain `nan`.
     """
     len_z = len(z)
+    max_z = max(z)
     for i in range(len_z):
-        z[i] -= max(z)
+        z[i] -= max_z
     sum_exp_z = sum(np.exp(z[j]) for j in range(len_z))
     result = np.zeros_like(z, dtype=np.float64)
     for i in range(len(z)):
@@ -172,7 +174,7 @@ def kl_divergence(p: np.ndarray, q: np.ndarray) -> float:
         must satisfy the identity D_KL(p || q) = H(p, q) - H(p); a test
         checks it against your own `cross_entropy` and `entropy`.
     """
-    return 0
+    return cross_entropy(p, q) - entropy(p)
 # ============================ END TODO (Task 6) ==============================
 
 
@@ -205,7 +207,15 @@ def focal_loss(p: np.ndarray, q: np.ndarray, gamma: float = 2.0,
     Requirement: with `gamma=0` and `alpha=None` this must return exactly the
         same value as `cross_entropy(p, q)` — a test checks that.
     """
-    return 0
+    result = 0
+    if gamma == 0 and alpha is None:
+        return cross_entropy(p,q)
+    for k in range(len(p)):
+        if alpha is None:
+            result += -p[k] * (1 - q[k]) ** gamma * np.log(q[k])
+        else:
+            result += -p[k] * alpha[k] * (1 - q[k]) ** gamma * np.log(q[k])
+    return result
 # ============================ END TODO (Task 7) ==============================
 
 
@@ -224,24 +234,24 @@ def main() -> None:
     print(f"entropy(q)             = {entropy(q):.6f}")
     print(f"entropy(p)             = {entropy(p):.6f}")
     print(f"cross_entropy(p, q)    = {cross_entropy(p, q):.6f}")
-    # print(f"kl_divergence(p, q)    = {kl_divergence(p, q):.6f}")
-    # print(f"H(p,q) - H(p)          = {cross_entropy(p, q) - entropy(p):.6f}")
-    # print(f"focal_loss(p, q, g=0)  = {focal_loss(p, q, gamma=0.0):.6f}")
-    # print(f"focal_loss(p, q, g=2)  = {focal_loss(p, q, gamma=2.0):.6f}")
-    # print()
+    print(f"kl_divergence(p, q)    = {kl_divergence(p, q):.6f}")
+    print(f"H(p,q) - H(p)          = {cross_entropy(p, q) - entropy(p):.6f}")
+    print(f"focal_loss(p, q, g=0)  = {focal_loss(p, q, gamma=0.0):.6f}")
+    print(f"focal_loss(p, q, g=2)  = {focal_loss(p, q, gamma=2.0):.6f}")
+    print()
 
-    # big = np.random.default_rng(42).normal(size=200000)
-    # big_list = big.tolist()
-    # t0 = time.perf_counter()
-    # softmax_loop(big_list)
-    # t_loop = time.perf_counter() - t0
-    # t0 = time.perf_counter()
-    # softmax_np(big)
-    # t_np = time.perf_counter() - t0
-    # print(f"softmax over {len(big)} values")
-    # print(f"  pure Python : {t_loop * 1000:8.2f} ms")
-    # print(f"  NumPy       : {t_np * 1000:8.2f} ms")
-    # print(f"  speed-up    : {t_loop / max(t_np, 1e-9):8.1f}x")
+    big = np.random.default_rng(42).normal(size=200000)
+    big_list = big.tolist()
+    t0 = time.perf_counter()
+    softmax_loop(big_list)
+    t_loop = time.perf_counter() - t0
+    t0 = time.perf_counter()
+    softmax_np(big)
+    t_np = time.perf_counter() - t0
+    print(f"softmax over {len(big)} values")
+    print(f"  pure Python : {t_loop * 1000:8.2f} ms")
+    print(f"  NumPy       : {t_np * 1000:8.2f} ms")
+    print(f"  speed-up    : {t_loop / max(t_np, 1e-9):8.1f}x")
 
 
 if __name__ == "__main__":
